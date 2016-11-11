@@ -1,0 +1,106 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{C015BEF4-2C98-4544-8B36-0699E96E4F00}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>LOLServer</RootNamespace>
+    <AssemblyName>LOLServer</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="biz\BizFactory.cs" />
+    <Compile Include="biz\IAccountBiz.cs" />
+    <Compile Include="biz\impl\AccountBiz.cs" />
+    <Compile Include="biz\impl\UserBiz.cs" />
+    <Compile Include="biz\IUserBiz.cs" />
+    <Compile Include="cache\CacheFactory.cs" />
+    <Compile Include="cache\IAccountCache.cs" />
+    <Compile Include="cache\impl\AccountCache.cs" />
+    <Compile Include="dao\model\Account.cs" />
+    <Compile Include="dao\model\User.cs" />
+    <Compile Include="HandlerCenter.cs" />
+    <Compile Include="logic\AbsMulitHandler.cs" />
+    <Compile Include="logic\AbsOnceHandler.cs" />
+    <Compile Include="logic\fight\FightHandler.cs" />
+    <Compile Include="logic\fight\FightRoom.cs" />
+    <Compile Include="logic\HanderInterface.cs" />
+    <Compile Include="logic\login\LoginHandler.cs" />
+    <Compile Include="logic\match\MatchHandler.cs" />
+    <Compile Include="logic\match\MatchRoom.cs" />
+    <Compile Include="logic\selecthero\SelectHandler.cs" />
+    <Compile Include="logic\selecthero\SelectRoom.cs" />
+    <Compile Include="logic\user\UserHandler.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="tool\AtomicInt.cs" />
+    <Compile Include="tool\EventUtil.cs" />
+    <Compile Include="tool\ExecutorPool.cs" />
+    <Compile Include="tool\ScheduleUtil.cs" />
+    <Compile Include="tool\TaskModel.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\AceNetFrameWork\AceNetFrameWork.csproj">
+      <Project>{d11456c7-86c0-4143-b624-fa11180603b9}</Project>
+      <Name>AceNetFrameWork</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Constans\Constans.csproj">
+      <Project>{ff653d88-f1f6-4e71-8c32-f23000ca1a79}</Project>
+      <Name>Constans</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\OneByOne\OneByOne.csproj">
+      <Project>{2ab8b00c-e29e-4d8b-8983-ea23df253cf5}</Project>
+      <Name>OneByOne</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Scripts\Scripts.csproj">
+      <Project>{4b1c2b76-bd00-4268-b328-83c55e222b30}</Project>
+      <Name>Scripts</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

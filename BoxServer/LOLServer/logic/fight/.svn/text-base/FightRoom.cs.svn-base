@@ -1,0 +1,242 @@
+﻿using AceNetFrameWork.ace;
+using LOLServer.tool;
+using OneByOne;
+using Scripts;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Collections.Concurrent;
+
+namespace LOLServer.logic.fight
+{
+   public class FightRoom:AbsMulitHandler,HanderInterface
+    {
+       //队伍玩家映射表
+       public Dictionary<int, FightPlayerModel> teamOne = new Dictionary<int, FightPlayerModel>();
+       public Dictionary<int, FightPlayerModel> teamTwo = new Dictionary<int, FightPlayerModel>();
+
+       //队伍建筑映射表
+       private Dictionary<int, FightBuildModel> teamOneBuildMap = new Dictionary<int, FightBuildModel>();
+       private Dictionary<int, FightBuildModel> teamTwoBuildMap = new Dictionary<int, FightBuildModel>();
+
+       AtomicInt enterCount = new AtomicInt();
+
+       private List<int> offline = new List<int>();
+       //玩家当前坐标映射
+       private ConcurrentDictionary<int, MoveDTO> playerPosition = new ConcurrentDictionary<int, MoveDTO>();
+
+       public void init(SelectModel[] one, SelectModel[] two)
+       {
+           enterCount.reset();
+           offline.Clear();
+           teamOne.Clear();
+           teamTwo.Clear();
+           teamOneBuildMap.Clear();
+           teamTwoBuildMap.Clear();
+           List<int> wus=new List<int>();
+           foreach (SelectModel item in one)
+           {
+               teamOne.Add(item.userId, create(item));
+               wus.Add(item.userId);
+           }
+           foreach (SelectModel item in two)
+           {
+               teamTwo.Add(item.userId, create(item));
+               wus.Add(item.userId);
+           }
+           initBuild();
+           writeToUsers(wus.ToArray(), Protocol.TYPE_SELECT, 0, SelectProtocol.START_FIGHT_BRO, null);
+       }
+
+       void initBuild()
+       {
+           //初始化建筑 注意 两边箭塔固定为10个  所以这里 做个简单的约束 1-10为 队伍1的箭塔 11-20为队伍2的箭塔
+           // 各位1 为主基地 为2-4 高级 5-7中级 8-10初级 客户端约束好坐标依次生成即可
+
+           //那么开始队伍一的初始化吧
+           teamOneBuildMap.Add(1, createFBM(1, 1));
+           teamOneBuildMap.Add(2, createFBM(2, 2));
+           teamOneBuildMap.Add(3, createFBM(3, 2));
+           teamOneBuildMap.Add(4, createFBM(4, 2));
+           teamOneBuildMap.Add(5, createFBM(5, 3));
+           teamOneBuildMap.Add(6, createFBM(6, 3));
+           teamOneBuildMap.Add(7, createFBM(7, 3));
+           teamOneBuildMap.Add(8, createFBM(8, 4));
+           teamOneBuildMap.Add(9, createFBM(9, 4));
+           teamOneBuildMap.Add(10, createFBM(10, 4));
+           //那么开始队伍二的初始化吧
+           teamTwoBuildMap.Add(11, createFBM(11, 1));
+           teamTwoBuildMap.Add(12, createFBM(12, 2));
+           teamTwoBuildMap.Add(13, createFBM(13, 2));
+           teamTwoBuildMap.Add(14, createFBM(14, 2));
+           teamTwoBuildMap.Add(15, createFBM(15, 3));
+           teamTwoBuildMap.Add(16, createFBM(16, 3));
+           teamTwoBuildMap.Add(17, createFBM(17, 3));
+           teamTwoBuildMap.Add(18, createFBM(18, 4));
+           teamTwoBuildMap.Add(19, createFBM(19, 4));
+           teamTwoBuildMap.Add(20, createFBM(20, 4));
+       }
+
+       private FightBuildModel createFBM(int id, int code)
+       { 
+           BuildDataModel data= BuildData.buildMap[code];
+           FightBuildModel model = new FightBuildModel(id,code,data.hp,data.hp,data.atk,data.def,data.reborn,data.rebornTime,data.initiative,data.infrared,data.name);
+           return model;
+       }
+
+       FightPlayerModel create(SelectModel model) {
+           FightPlayerModel player = new FightPlayerModel();
+           player.userId = model.userId;
+           player.heroId = model.heroId;
+           player.name = getUser(model.userId).name;
+           player.exp = 0;
+           player.level = 1;
+           player.free = 1;
+           player.money = 0;
+           
+           player.equs = new int[6];
+           //TODO 剩余数据 需要脚本载入
+           HeroDataModel data=HeroData.heroMap[model.heroId];
+           player.atk = data.atkBase;
+           player.def = data.defBase;
+           player.aspeed = data.aspeed;
+           player.speed = data.speed;
+           player.range = data.range;
+           player.skills=initSkill(data.skills);
+           return player;
+       }
+
+       private FightSkill[] initSkill(int[] skills)
+       {
+         FightSkill[] skill=  new FightSkill[skills.Length];
+
+         for (int i = 0; i < skills.Length; i++)
+         {
+             int skillCode = skills[i];
+             SkillDataModel data = SkillData.skillMap[skillCode];
+             SkillLevelData lData=data.levels[0];
+             FightSkill temp = new FightSkill(skillCode, 0, lData.level, lData.time, lData.mp, lData.range, data.name, data.info, data.target,data.type);
+            skill[i] = temp;
+
+         }
+         return skill;
+       }
+
+        public void MessageRecevie(AceNetFrameWork.ace.UserToken token, AceNetFrameWork.ace.auto.SocketModel message)
+        {
+            switch (message.command) { 
+                case FightProtocol.ENTER_CREQ:
+                    enter(token);
+                    break;
+                case FightProtocol.MOVE_CREQ:
+                    move(token, message.getMessage<MoveDTO>());
+                    break;
+                case FightProtocol.SKILL_UP_CREQ:
+                    skillUp(token, message.getMessage<int>());
+                    break;
+                case FightProtocol.ATTACK_CREQ:
+                    attack(token, message.getMessage<int[]>());
+                    break;
+                case FightProtocol.DAMAGE_CREQ:
+                    damage(token, message.getMessage<DamageDTO>());
+                    break;
+            }
+        }
+
+        private void damage(UserToken token,DamageDTO value)
+        {
+            
+        }
+
+        private void attack(UserToken token,int[] target)
+        {
+            AttackDTO atk = new AttackDTO();
+            atk.id = getUserId(token);
+            atk.target = target;
+            brocast(FightProtocol.ATTACK_BRO, atk);
+        }
+
+        private void skillUp(UserToken token, int skill)
+        {
+            int userId = getUserId(token);
+            FightPlayerModel player;
+            if (teamOne.ContainsKey(userId))
+            {
+                player = teamOne[userId];
+            }
+            else
+            {
+                player = teamTwo[userId];
+            }
+            if (player.free > 0)
+            {
+                foreach (FightSkill item in player.skills)
+	            {
+                    if (item.id == skill)
+                    {
+                        if (item.nextLevel != -1 && item.nextLevel <= player.level)
+                        {
+                            player.free -= 1;
+                            int level = item.level + 1;
+                            SkillLevelData data= SkillData.skillMap[skill].levels[level];
+                            item.mp = data.mp;
+                            item.nextLevel = data.level;
+                            item.range = data.range;
+                            item.time = data.time;
+                            item.level = level;
+                            write(token, FightProtocol.SKILL_UP_SRES, item);
+                        }
+                        return;
+                    }
+	            } 
+            }
+        }
+
+        private void move(UserToken token,MoveDTO dto)
+        {
+            int userId=getUserId(token);
+            dto.userId = userId;
+            playerPosition.AddOrUpdate(userId, dto,(key,oldValue)=>oldValue=dto);
+            brocast(FightProtocol.MOVE_BRO, dto);
+        }
+
+        private new void enter(UserToken token) {
+            if (entered(token)) return;
+            base.enter(token);
+            enterCount.getAndAdd();
+            Console.WriteLine("entered:"+enterCount.get());
+            if (enterCount.get() == teamOne.Count + teamTwo.Count) { 
+                FightRoomModel frm=new FightRoomModel();
+                frm.teamOne=teamOne.Values.ToArray();
+                frm.teamTwo=teamTwo.Values.ToArray();
+                frm.teamOneBuildMap = teamOneBuildMap.Values.ToArray();
+                frm.teamTwoBuildMap = teamTwoBuildMap.Values.ToArray();
+                brocast(FightProtocol.FIGHT_BRO, frm);
+            }
+        }
+
+        public void ClientClose(AceNetFrameWork.ace.UserToken token)
+        {
+            base.leave(token);
+           int id= getUserId(token);
+           if (teamOne.ContainsKey(id) || teamTwo.ContainsKey(id)) {
+               if (!offline.Contains
+                   (id)) {
+                       offline.Add(id);
+               }
+           }
+           if (offline.Count == teamOne.Count + teamTwo.Count)
+           { //移除战场
+               
+               EventUtil.Instance.fightDestory(getArea());
+           }
+        }
+
+        public override int getType()
+        {
+            return Protocol.TYPE_FIGHT;
+        }
+    }
+}

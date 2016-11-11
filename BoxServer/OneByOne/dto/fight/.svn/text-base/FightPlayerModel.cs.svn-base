@@ -1,0 +1,26 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace OneByOne
+{
+    [Serializable]
+   public class FightPlayerModel
+    {
+       public int userId;//玩家ID
+       public string name;//玩家名称
+       public int heroId;//英雄ID
+       public int free;
+       public int level;//英雄等级
+       public int exp;//英雄经验
+       public int atk;//英雄攻击
+       public int def;//英雄防御
+       public float speed;//英雄移动速度
+       public float aspeed;//英雄攻击速度
+       public float range;//攻击距离
+       public int money;//当前金钱
+       public int[] equs;//当前物品栏
+       public FightSkill[] skills;//英雄技能
+    }
+}

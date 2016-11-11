@@ -1,0 +1,20 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace OneByOne
+{
+    [Serializable]
+   public class FightSoldierModel
+    {
+       public int id;
+       public int code;
+       public int hp;
+       public int hpMax;
+       public int atk;
+       public int def;
+       public float speed;
+
+    }
+}
